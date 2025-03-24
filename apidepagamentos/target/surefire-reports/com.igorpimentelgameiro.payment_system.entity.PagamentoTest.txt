@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.igorpimentelgameiro.payment_system.entity.PagamentoTest
--------------------------------------------------------------------------------
-Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.038 s -- in com.igorpimentelgameiro.payment_system.entity.PagamentoTest
