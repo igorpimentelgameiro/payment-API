@@ -12,48 +12,53 @@ public class PagamentoMock {
 
     public static PagamentoDTO getPagDTOMock_Sucesso() {
         return new PagamentoDTO(
-                123,
-                123.0,
+                (double) 123L,
+                "123456789",
                 MetodoPagamento.BOLETO,
                 null
         );
     }
 
+
     public static PagamentoDTO getPagDTOMock_Falha_Pix() {
         return new PagamentoDTO(
-                123,
-                123.0,
+                (double) 123L,
+                "123456789",
                 MetodoPagamento.PIX,
-                123
+                123456789
         );
     }
+
 
     public static PagamentoDTO getPagDTOMock_Falha_Boleto() {
         return new PagamentoDTO(
-                123,
-                123.0,
+                (double) 123L,
+                "123456789",
                 MetodoPagamento.BOLETO,
-                123
+                123456789
         );
     }
 
+
     public static PagamentoDTO getPagDTOMock_Falha_Cartao_Credito() {
         return new PagamentoDTO(
-                123,
-                123.0,
+                (double) 123L,
+                "123456789",
                 MetodoPagamento.CARTAO_CREDITO,
                 null
         );
     }
 
+
     public static PagamentoDTO getPagDTOMock_Falha_Cartao_Debito() {
         return new PagamentoDTO(
-                123,
-                123.0,
+                (double) 123L,
+                "123456789",
                 MetodoPagamento.CARTAO_DEBITO,
                 null
         );
     }
+
 
     public static AtualizarPagamentoDTO getAtualizarPagDTOMock_Sucesso() {
         return new AtualizarPagamentoDTO(
@@ -61,6 +66,7 @@ public class PagamentoMock {
                 StatusPagamento.PROCESSADO_SUCESSO
         );
     }
+
 
     public static AtualizarPagamentoDTO getAtualizarPagDTOMock_Falha_Caso1() {
         return new AtualizarPagamentoDTO(

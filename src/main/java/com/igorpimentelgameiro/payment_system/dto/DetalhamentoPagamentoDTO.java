@@ -5,7 +5,7 @@ import com.igorpimentelgameiro.payment_system.entity.Pagamento;
 import com.igorpimentelgameiro.payment_system.enums.StatusPagamento;
 
 public record DetalhamentoPagamentoDTO(
-        Integer codigoPagamento,
+        Long codigoPagamento,
         String documento,
         MetodoPagamento metodoPagamento,
         Double Valor,
@@ -14,7 +14,7 @@ public record DetalhamentoPagamentoDTO(
         Boolean isAtivo
 ) {
     public DetalhamentoPagamentoDTO(Pagamento pagamento) {
-        this(pagamento.getCodigoPagamento(), String.valueOf(pagamento.getDocumento()), pagamento.getMetodoPagamento(), pagamento.getValor(), pagamento.getNumeroCartao(), pagamento.getStatusPagamento(), pagamento.isAtivo());
+        this(pagamento.getCodigoPagamento(), String.valueOf(pagamento.getDocumento()), pagamento.getMetodoPagamento(), pagamento.getValorPagamento(), pagamento.getNumeroCartao(), pagamento.getStatusPagamento(), pagamento.isAtivo());
     }
 
 }

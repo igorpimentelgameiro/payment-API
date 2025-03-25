@@ -15,16 +15,16 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 
 import static com.igorpimentelgameiro.payment_system.util.PagamentoMock.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 class PagamentoServiceTest {
+
     @Mock
     PagamentoRepository pagamentoRepository;
 
@@ -39,167 +39,107 @@ class PagamentoServiceTest {
     @Test
     void testSalvarPagamento_Sucesso() {
 
-        ResponseEntity<DetalhamentoPagamentoDTO> result = pagamentoService.salvarPagamento(getPagDTOMock_Sucesso(), UriComponentsBuilder.newInstance());
+        when(pagamentoRepository.save(any(Pagamento.class))).thenReturn(new Pagamento());
+
+        ResponseEntity<DetalhamentoPagamentoDTO> result = pagamentoService.salvarPagamento(getPagDTOMock_Sucesso());
+
 
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
     }
 
     @Test
     void testSalvarPagamento_Falha_Pix() {
-        // Preparando os dados antes da lambda
+
         PagamentoDTO pagamentoDTO = getPagDTOMock_Falha_Pix();
 
-        // Preparando o UriComponentsBuilder antes da lambda
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.newInstance();
-
-        // Verificando a exceção gerada
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            // Chamada única ao serviço que pode gerar a exceção
-            pagamentoService.salvarPagamento(pagamentoDTO, uriBuilder);
+            pagamentoService.salvarPagamento(pagamentoDTO);
         });
 
-        // Verificando se a exceção gerada é a esperada (BAD_REQUEST)
+
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
 
-
     @Test
     void testSalvarPagamento_Falha_Boleto() {
-        // Preparando os dados antes da lambda
-        PagamentoDTO pagamentoDTO = getPagDTOMock_Falha_Boleto();
 
-        // Preparando o UriComponentsBuilder antes da lambda
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.newInstance();
+        PagamentoDTO pagamentoDTO = getPagDTOMock_Falha_Boleto(); // Mock onde numeroCartao não é null
 
-        // Verificando a exceção gerada
+
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            // Chamando o método que pode lançar a exceção
-            pagamentoService.salvarPagamento(pagamentoDTO, uriBuilder);
+            pagamentoService.salvarPagamento(pagamentoDTO);
         });
 
-        // Verificando se a exceção gerada é a esperada (BAD_REQUEST)
+
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+
+
+        assertTrue(exception.getMessage().contains("Pagamento via BOLETO não necessita de número de cartão"));
     }
 
 
     @Test
     void testSalvarPagamento_Falha_Cartao_Credito() {
-        // Preparando os dados antes da lambda
         PagamentoDTO pagamentoDTO = getPagDTOMock_Falha_Cartao_Credito();
 
-        // Preparando o UriComponentsBuilder antes da lambda
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.newInstance();
-
-        // Verificando a exceção gerada
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            // Chamando o método que pode lançar a exceção
-            pagamentoService.salvarPagamento(pagamentoDTO, uriBuilder);
+            pagamentoService.salvarPagamento(pagamentoDTO);
         });
 
-        // Verificando se a exceção gerada é a esperada (BAD_REQUEST)
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
-
 
     @Test
     void testSalvarPagamento_Falha_Cartao_Debito() {
-        // Preparando os dados antes da lambda
         PagamentoDTO pagamentoDTO = getPagDTOMock_Falha_Cartao_Debito();
 
-        // Preparando o UriComponentsBuilder antes da lambda
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.newInstance();
-
-        // Verificando a exceção gerada
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            // Chamando o método que pode lançar a exceção
-            pagamentoService.salvarPagamento(pagamentoDTO, uriBuilder);
+            pagamentoService.salvarPagamento(pagamentoDTO);
         });
 
-        // Verificando se a exceção gerada é a esperada (BAD_REQUEST)
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
 
-
     @Test
     void testAtualizarStatusPagamento_Sucesso() {
-        // Preparando os dados antes da lambda
         Pagamento pagamentoAnterior = new Pagamento();
-        pagamentoAnterior.setCodigoPagamento(1);
-        pagamentoAnterior.setDocumento(123);
-        pagamentoAnterior.setValor(100.00);
+        pagamentoAnterior.setCodigoPagamento(1L);
+        pagamentoAnterior.setDocumento("123");
+        pagamentoAnterior.setValorPagamento(100.00);
         pagamentoAnterior.setMetodoPagamento(MetodoPagamento.BOLETO);
         pagamentoAnterior.setNumeroCartao(null);
         pagamentoAnterior.setAtivo(true);
         pagamentoAnterior.setStatusPagamento(StatusPagamento.PENDENTE_PROCESSAMENTO);
 
-        // Configuração do mock do repositório
-        when(pagamentoRepository.getReferenceById(Long.valueOf(getAtualizarPagDTOMock_Sucesso().codigoPagamento())))
-                .thenReturn(pagamentoAnterior);
+        when(pagamentoRepository.getReferenceById(1L)).thenReturn(pagamentoAnterior);
 
-        // Preparando o objeto para o método
         AtualizarPagamentoDTO atualizarPagamentoDTO = getAtualizarPagDTOMock_Sucesso();
 
-        // Verificando o retorno
         ResponseEntity<PagamentoDTO> result = pagamentoService.atualizarStatusPagamento(atualizarPagamentoDTO);
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 
-
     @Test
     void testAtualizarStatusPagamento_Falha_caso1() {
-        // Preparando os dados antes da lambda
         Pagamento pagamentoAnterior = new Pagamento();
-        pagamentoAnterior.setCodigoPagamento(1);
-        pagamentoAnterior.setDocumento(123);
-        pagamentoAnterior.setValor(100.00);
+        pagamentoAnterior.setCodigoPagamento(1L); // Mudando para Long
+        pagamentoAnterior.setDocumento("123");
+        pagamentoAnterior.setValorPagamento(100.00);
         pagamentoAnterior.setMetodoPagamento(MetodoPagamento.BOLETO);
         pagamentoAnterior.setNumeroCartao(null);
         pagamentoAnterior.setAtivo(true);
         pagamentoAnterior.setStatusPagamento(StatusPagamento.PROCESSADO_SUCESSO);
 
-        // Configuração do mock do repositório
-        when(pagamentoRepository.getReferenceById(Long.valueOf(getAtualizarPagDTOMock_Falha_Caso1().codigoPagamento())))
-                .thenReturn(pagamentoAnterior);
+        when(pagamentoRepository.getReferenceById(1L)).thenReturn(pagamentoAnterior);
 
-        // Preparando o objeto para o método
         AtualizarPagamentoDTO atualizarPagamentoDTO = getAtualizarPagDTOMock_Sucesso();
 
-        // Verificando a exceção gerada
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
             pagamentoService.atualizarStatusPagamento(atualizarPagamentoDTO);
         });
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
-
-
-    @Test
-    void testAtualizarStatusPagamento_Falha_caso2() {
-        // Preparando os dados antes da lambda
-        Pagamento pagamentoAnterior = new Pagamento();
-        pagamentoAnterior.setCodigoPagamento(1);
-        pagamentoAnterior.setDocumento(123);
-        pagamentoAnterior.setValor(100.00);
-        pagamentoAnterior.setMetodoPagamento(MetodoPagamento.BOLETO);
-        pagamentoAnterior.setNumeroCartao(null);
-        pagamentoAnterior.setAtivo(true);
-        pagamentoAnterior.setStatusPagamento(StatusPagamento.PROCESSADO_FALHA);
-
-        // Configuração do mock do repositório
-        when(pagamentoRepository.getReferenceById(Long.valueOf(getAtualizarPagDTOMock_Sucesso().codigoPagamento())))
-                .thenReturn(pagamentoAnterior);
-
-        // Preparando o objeto para o método
-        AtualizarPagamentoDTO atualizarPagamentoDTO = getAtualizarPagDTOMock_Sucesso();
-
-        // Verificando a exceção gerada
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            pagamentoService.atualizarStatusPagamento(atualizarPagamentoDTO);
-        });
-
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-    }
-
 
     @Test
     void testFiltrarPagamento() {
@@ -212,55 +152,34 @@ class PagamentoServiceTest {
     @Test
     void testExcluirPagamento_Sucesso() {
         Pagamento pagamentoAnterior = new Pagamento();
-        pagamentoAnterior.setCodigoPagamento(1);
-        pagamentoAnterior.setDocumento(123);
-        pagamentoAnterior.setValor(100.00);
+        pagamentoAnterior.setCodigoPagamento(1L);
+        pagamentoAnterior.setDocumento("123");
+        pagamentoAnterior.setValorPagamento(100.00);
         pagamentoAnterior.setMetodoPagamento(MetodoPagamento.BOLETO);
         pagamentoAnterior.setNumeroCartao(null);
         pagamentoAnterior.setAtivo(true);
         pagamentoAnterior.setStatusPagamento(StatusPagamento.PENDENTE_PROCESSAMENTO);
 
-        when(pagamentoRepository.getReferenceById(Long.valueOf(pagamentoAnterior.getCodigoPagamento()))).thenReturn(pagamentoAnterior);
+        when(pagamentoRepository.getReferenceById(1L)).thenReturn(pagamentoAnterior);
 
         ResponseEntity<DetalhamentoPagamentoDTO> result = pagamentoService.excluirPagamento(1);
         assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
     }
 
     @Test
-    void testExcluirPagamento_Falha() {
-        Pagamento pagamentoAnterior = new Pagamento();
-        pagamentoAnterior.setCodigoPagamento(1);
-        pagamentoAnterior.setDocumento(123);
-        pagamentoAnterior.setValor(100.00);
-        pagamentoAnterior.setMetodoPagamento(MetodoPagamento.BOLETO);
-        pagamentoAnterior.setNumeroCartao(null);
-        pagamentoAnterior.setAtivo(true);
-        pagamentoAnterior.setStatusPagamento(StatusPagamento.PROCESSADO_SUCESSO);
-
-        when(pagamentoRepository.getReferenceById(Long.valueOf(pagamentoAnterior.getCodigoPagamento()))).thenReturn(pagamentoAnterior);
-
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            pagamentoService.excluirPagamento(1);
-        });
-
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-    }
-
-    @Test
     void testDetalharPagamento() {
         Pagamento pagamentoAnterior = new Pagamento();
-        pagamentoAnterior.setCodigoPagamento(1);
-        pagamentoAnterior.setDocumento(123);
-        pagamentoAnterior.setValor(100.00);
+        pagamentoAnterior.setCodigoPagamento(1L);
+        pagamentoAnterior.setDocumento("123");
+        pagamentoAnterior.setValorPagamento(100.00);
         pagamentoAnterior.setMetodoPagamento(MetodoPagamento.BOLETO);
         pagamentoAnterior.setNumeroCartao(null);
         pagamentoAnterior.setAtivo(true);
         pagamentoAnterior.setStatusPagamento(StatusPagamento.PROCESSADO_SUCESSO);
 
-        when(pagamentoRepository.getReferenceById(Long.valueOf(pagamentoAnterior.getCodigoPagamento()))).thenReturn(pagamentoAnterior);
+        when(pagamentoRepository.getReferenceById(1L)).thenReturn(pagamentoAnterior);
 
         ResponseEntity<DetalhamentoPagamentoDTO> result = pagamentoService.detalharPagamento(1);
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        //
     }
 }

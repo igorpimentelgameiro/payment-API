@@ -3,19 +3,20 @@ package com.igorpimentelgameiro.payment_system.service;
 import com.igorpimentelgameiro.payment_system.dto.AtualizarPagamentoDTO;
 import com.igorpimentelgameiro.payment_system.dto.DetalhamentoPagamentoDTO;
 import com.igorpimentelgameiro.payment_system.dto.PagamentoDTO;
-import com.igorpimentelgameiro.payment_system.enums.MetodoPagamento;
 import com.igorpimentelgameiro.payment_system.entity.Pagamento;
 import com.igorpimentelgameiro.payment_system.enums.StatusPagamento;
 import com.igorpimentelgameiro.payment_system.repository.PagamentoRepository;
+import com.igorpimentelgameiro.payment_system.util.MapperPagamentoPagamentoDto;
 import com.igorpimentelgameiro.payment_system.validation.ValidaPagamento;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -25,24 +26,41 @@ public class PagamentoService {
 
     public PagamentoService(PagamentoRepository pagamentoRepository) {
         this.pagamentoRepository = pagamentoRepository;
+
     }
 
-    public ResponseEntity<DetalhamentoPagamentoDTO> salvarPagamento(PagamentoDTO pagamentoDTO, UriComponentsBuilder uriComponentsBuilder) {
-        var pagamento = new Pagamento(pagamentoDTO);
-        List<String> erros = Stream.of(
-                        new ValidaPagamento(pagamento.getMetodoPagamento() == MetodoPagamento.PIX && pagamentoDTO.numeroCartao() != null,
-                                "Pagamento via PIX não necessita de número de cartão"),
-                        new ValidaPagamento(pagamento.getMetodoPagamento() == MetodoPagamento.BOLETO && pagamentoDTO.numeroCartao() != null,
-                                "Pagamento via BOLETO não necessita de número de cartão"),
-                        new ValidaPagamento((pagamento.getMetodoPagamento() == MetodoPagamento.CARTAO_CREDITO ||
-                                pagamento.getMetodoPagamento() == MetodoPagamento.CARTAO_DEBITO) && pagamentoDTO.numeroCartao() == null,
-                                "Pagamento usando cartão necessita do número do cartão de crédito ou débito"),
-                        new ValidaPagamento(pagamento.getValor() == null || pagamentoDTO.valor() <= 0,
-                                "Não é possivel fazer um pagamento de R$0,00 Reais")
-                )
-                .filter(ValidaPagamento::isInvalida)
-                .map(ValidaPagamento::getMensagemErro)
-                .toList();
+    public ResponseEntity<DetalhamentoPagamentoDTO> salvarPagamento(PagamentoDTO pagamentoDTO) {
+        Pagamento pagamento = new Pagamento(pagamentoDTO);
+
+        List<String> erros = new ArrayList<>();
+
+        switch (pagamento.getMetodoPagamento()) {
+            case PIX:
+                if (pagamentoDTO.getNumeroCartao() != null) {
+                    erros.add("Pagamento via PIX não necessita de número de cartão");
+                }
+                break;
+
+            case BOLETO:
+                if (pagamentoDTO.getNumeroCartao() != null) {
+                    erros.add("Pagamento via BOLETO não necessita de número de cartão");
+                }
+                break;
+
+            case CARTAO_CREDITO:
+            case CARTAO_DEBITO:
+                if (pagamentoDTO.getNumeroCartao() == null) {
+                    erros.add("Pagamento usando cartão necessita do número do cartão de crédito ou débito");
+                }
+                break;
+
+            default:
+                break;
+        }
+
+        if (pagamentoDTO.getValorPagamento() == null || pagamentoDTO.getValorPagamento() <= 0) {
+            erros.add("Não é possível fazer um pagamento de R$0,00 Reais");
+        }
 
         if (!erros.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.join(", ", erros));
@@ -50,10 +68,11 @@ public class PagamentoService {
 
         pagamentoRepository.save(pagamento);
 
-        var uri = uriComponentsBuilder.path("/pagamento/detalharPagamento/{id}").buildAndExpand(pagamento.getCodigoPagamento()).toUri();
+        DetalhamentoPagamentoDTO detalhamentoPagamentoDTO = new DetalhamentoPagamentoDTO(pagamento);
 
-        return ResponseEntity.created(uri).body(new DetalhamentoPagamentoDTO(pagamento));
+        return new ResponseEntity<>(detalhamentoPagamentoDTO, HttpStatus.CREATED);
     }
+
 
     public ResponseEntity<PagamentoDTO> atualizarStatusPagamento(AtualizarPagamentoDTO atualizarPagamentoDTO) {
 
@@ -73,7 +92,7 @@ public class PagamentoService {
                 )
                 .filter(ValidaPagamento::isInvalida)
                 .map(ValidaPagamento::getMensagemErro)
-                .toList();
+                .collect(Collectors.toList());
 
         if (!erros.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.join(", ", erros));
@@ -81,18 +100,26 @@ public class PagamentoService {
 
         pagamentoAnterior.atualizarStatus(atualizarPagamentoDTO.statusPagamento());
 
-        return ResponseEntity.ok(new PagamentoDTO(pagamentoAnterior));
+        PagamentoDTO pagamentoNovo = MapperPagamentoPagamentoDto.toDTO(pagamentoAnterior);
+
+        return ResponseEntity.ok(pagamentoNovo);
     }
 
     public ResponseEntity<List<DetalhamentoPagamentoDTO>> filtrarPagamento(Integer codigoPagamento, String documento, StatusPagamento statusPagamento) {
-        var pagamentoFiltrado = pagamentoRepository.findAll().stream()
-                .filter(pagamento -> pagamento.getCodigoPagamento() == null || pagamento.getCodigoPagamento().equals(codigoPagamento))
+        List<DetalhamentoPagamentoDTO> pagamentosFiltrados = pagamentoRepository.findAll().stream()
+
+                .filter(pagamento -> (codigoPagamento == null || pagamento.getCodigoPagamento().equals(codigoPagamento.longValue())))
+
                 .filter(pagamento -> documento == null || Objects.equals(String.valueOf(pagamento.getDocumento()), documento))
+
                 .filter(pagamento -> statusPagamento == null || pagamento.getStatusPagamento().equals(statusPagamento))
+
                 .map(DetalhamentoPagamentoDTO::new)
-                .toList();
-        return ResponseEntity.ok(pagamentoFiltrado);
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(pagamentosFiltrados);
     }
+
 
     public ResponseEntity<DetalhamentoPagamentoDTO> excluirPagamento(Integer codigoDebito) {
 

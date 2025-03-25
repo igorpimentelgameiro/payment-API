@@ -4,7 +4,7 @@ import com.igorpimentelgameiro.payment_system.enums.MetodoPagamento;
 import com.igorpimentelgameiro.payment_system.enums.StatusPagamento;
 
 public record FiltrarPagamentoDTO(
-        Integer codigoPagamento,
+        String codigoPagamento,
         String documento,
         MetodoPagamento metodoPagamento,
         String numeroCartao,

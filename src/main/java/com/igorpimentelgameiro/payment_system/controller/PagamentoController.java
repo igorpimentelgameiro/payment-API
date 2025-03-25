@@ -10,7 +10,6 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 
@@ -24,11 +23,10 @@ public class PagamentoController {
         this.pagamentoService = pagamentoService;
     }
 
-    @PostMapping("/criarPagamento")
-    @Transactional
+    @PostMapping
     @Operation(summary = "cria um novo pagamento", description = "O numero do cartão só deverá ser informado se o pagamento for pelo método de cartão de crédito ou débito")
-    public ResponseEntity<DetalhamentoPagamentoDTO> novoPagamento(@RequestBody @Valid PagamentoDTO pagamentoDTO, UriComponentsBuilder uriComponentsBuilder) {
-        return pagamentoService.salvarPagamento(pagamentoDTO, uriComponentsBuilder);
+    public ResponseEntity<DetalhamentoPagamentoDTO> novoPagamento(@RequestBody PagamentoDTO pagamentoDTO) {
+        return pagamentoService.salvarPagamento(pagamentoDTO);
 
     }
 
@@ -41,7 +39,7 @@ public class PagamentoController {
         return pagamentoService.filtrarPagamento(codigoDebito, cpfCnpj, status);
     }
 
-    @PutMapping("atualizarPagamento")
+    @PutMapping("/atualizarPagamento")
     @Transactional
     @Operation(summary = "Atualiza o status de um pagamento")
     public ResponseEntity<PagamentoDTO> atualizarStatus(@RequestBody @Valid AtualizarPagamentoDTO atualizarPagamentoDTO) {
