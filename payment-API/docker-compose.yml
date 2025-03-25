@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  h2:
+    image: oscarfonts/h2 # Uma imagem do H2 disponível no Docker Hub
+    container_name: h2-database
+    ports:
+      - "9092:9092" # Porta padrão para conexão JDBC
+      - "8082:8082" # Porta para acessar o console web do H2
+    environment:
+      - H2_OPTIONS=-webAllowOthers -tcpAllowOthers
+    restart: unless-stopped
+
+volumes:
+  h2_data:
